@@ -41,127 +41,150 @@ import static cn.keking.service.FilePreview.PICTURE_FILE_PREVIEW_PAGE;
 @Controller
 public class OnlinePreviewController {
 
-    public static final String BASE64_DECODE_ERROR_MSG = "Base64解码失败，请检查你的 %s 是否采用 Base64 + urlEncode 双重编码了！";
-    private final Logger logger = LoggerFactory.getLogger(OnlinePreviewController.class);
+	public static final String BASE64_DECODE_ERROR_MSG = "Base64解码失败，请检查你的 %s 是否采用 Base64 + urlEncode 双重编码了！";
+	private final Logger logger = LoggerFactory.getLogger(OnlinePreviewController.class);
 
-    private final FilePreviewFactory previewFactory;
-    private final CacheService cacheService;
-    private final FileHandlerService fileHandlerService;
-    private final OtherFilePreviewImpl otherFilePreview;
+	private final FilePreviewFactory previewFactory;
+	private final CacheService cacheService;
+	private final FileHandlerService fileHandlerService;
+	private final OtherFilePreviewImpl otherFilePreview;
 
-    public OnlinePreviewController(FilePreviewFactory filePreviewFactory, FileHandlerService fileHandlerService, CacheService cacheService, OtherFilePreviewImpl otherFilePreview) {
-        this.previewFactory = filePreviewFactory;
-        this.fileHandlerService = fileHandlerService;
-        this.cacheService = cacheService;
-        this.otherFilePreview = otherFilePreview;
-    }
+	public OnlinePreviewController(FilePreviewFactory filePreviewFactory, FileHandlerService fileHandlerService,
+			CacheService cacheService, OtherFilePreviewImpl otherFilePreview) {
+		this.previewFactory = filePreviewFactory;
+		this.fileHandlerService = fileHandlerService;
+		this.cacheService = cacheService;
+		this.otherFilePreview = otherFilePreview;
+	}
 
-    @RequestMapping(value = "/onlinePreview")
-    public String onlinePreview(String url, Model model, HttpServletRequest req) {
-        String fileUrl;
-        try {
-            fileUrl = new String(Base64.decodeBase64(url), StandardCharsets.UTF_8);
-        } catch (Exception ex) {
-            String errorMsg = String.format(BASE64_DECODE_ERROR_MSG, "url");
-            return otherFilePreview.notSupportedFile(model, errorMsg);
-        }
-        if (!allowPreview(fileUrl)) {
-            return otherFilePreview.notSupportedFile(model, "该文件不允许预览：" + fileUrl);
-        }
-        FileAttribute fileAttribute = fileHandlerService.getFileAttribute(fileUrl, req);
-        model.addAttribute("file", fileAttribute);
-        FilePreview filePreview = previewFactory.get(fileAttribute);
-        logger.info("预览文件url：{}，previewType：{}", fileUrl, fileAttribute.getType());
-        return filePreview.filePreviewHandle(fileUrl, model, fileAttribute);
-    }
+	@RequestMapping(value = "/onlinePreview")
+	public String onlinePreview(String url, Model model, HttpServletRequest req) {
+		String fileUrl;
+		try {
+			fileUrl = new String(Base64.decodeBase64(url), StandardCharsets.UTF_8);
+		} catch (Exception ex) {
+			String errorMsg = String.format(BASE64_DECODE_ERROR_MSG, "url");
+			return otherFilePreview.notSupportedFile(model, errorMsg);
+		}
+		if (!allowPreview(fileUrl)) {
+			return otherFilePreview.notSupportedFile(model, "该文件不允许预览：" + fileUrl);
+		}
+		FileAttribute fileAttribute = fileHandlerService.getFileAttribute(fileUrl, req);
+		model.addAttribute("file", fileAttribute);
+		FilePreview filePreview = previewFactory.get(fileAttribute);
+		logger.info("预览文件url：{}，previewType：{}", fileUrl, fileAttribute.getType());
+		return filePreview.filePreviewHandle(fileUrl, model, fileAttribute);
+	}
 
-    @RequestMapping(value = "/picturesPreview")
-    public String picturesPreview(String urls, Model model, HttpServletRequest req) throws UnsupportedEncodingException {
-        String fileUrls;
-        try {
-            fileUrls = new String(Base64.decodeBase64(urls));
-        } catch (Exception ex) {
-            String errorMsg = String.format(BASE64_DECODE_ERROR_MSG, "urls");
-            return otherFilePreview.notSupportedFile(model, errorMsg);
-        }
-        logger.info("预览文件url：{}，urls：{}", fileUrls, urls);
-        // 抽取文件并返回文件列表
-        String[] images = fileUrls.split("\\|");
-        List<String> imgUrls = Arrays.asList(images);
-        model.addAttribute("imgUrls", imgUrls);
+	@RequestMapping(value = "/onlinedangan")
+	public String danganPreview(String url, Model model, HttpServletRequest req) {
+		String fileUrl;
+		try {
+			fileUrl = new String(Base64.decodeBase64(url), StandardCharsets.UTF_8);
+			logger.info("fileURL:{}", fileUrl);
+		} catch (Exception ex) {
+			String errorMsg = String.format(BASE64_DECODE_ERROR_MSG, "url");
+			return otherFilePreview.notSupportedFile(model, errorMsg);
+		}
+		if (!allowPreview(fileUrl)) {
+			return otherFilePreview.notSupportedFile(model, "该文件不允许预览：" + fileUrl);
+		}
+		FileAttribute fileAttribute = fileHandlerService.getFileAttributeWithDangan(fileUrl, req);
+		model.addAttribute("file", fileAttribute);
+		FilePreview filePreview = previewFactory.get(fileAttribute);
+		logger.info("预览文件url：{}，previewType：{}", fileUrl, fileAttribute.getType());
+		logger.info("filePreview type:{}", filePreview.getClass());
+		return filePreview.filePreviewHandle(fileUrl, model, fileAttribute);
+	}
 
-        String currentUrl = req.getParameter("currentUrl");
-        if (StringUtils.hasText(currentUrl)) {
-            String decodedCurrentUrl = new String(Base64.decodeBase64(currentUrl));
-            if (!allowPreview(decodedCurrentUrl)) {
-                return otherFilePreview.notSupportedFile(model, "该文件不允许预览：" + decodedCurrentUrl);
-            }
-            model.addAttribute("currentUrl", decodedCurrentUrl);
-        } else {
-            if (!allowPreview(imgUrls.get(0))) {
-                return otherFilePreview.notSupportedFile(model, "该文件不允许预览：" + imgUrls.get(0));
-            }
-            model.addAttribute("currentUrl", imgUrls.get(0));
-        }
-        return PICTURE_FILE_PREVIEW_PAGE;
-    }
+	@RequestMapping(value = "/picturesPreview")
+	public String picturesPreview(String urls, Model model, HttpServletRequest req)
+			throws UnsupportedEncodingException {
+		String fileUrls;
+		try {
+			fileUrls = new String(Base64.decodeBase64(urls));
+		} catch (Exception ex) {
+			String errorMsg = String.format(BASE64_DECODE_ERROR_MSG, "urls");
+			return otherFilePreview.notSupportedFile(model, errorMsg);
+		}
+		logger.info("预览文件url：{}，urls：{}", fileUrls, urls);
+		// 抽取文件并返回文件列表
+		String[] images = fileUrls.split("\\|");
+		List<String> imgUrls = Arrays.asList(images);
+		model.addAttribute("imgUrls", imgUrls);
 
-    /**
-     * 根据url获取文件内容
-     * 当pdfjs读取存在跨域问题的文件时将通过此接口读取
-     *
-     * @param urlPath  url
-     * @param response response
-     */
-    @RequestMapping(value = "/getCorsFile", method = RequestMethod.GET)
-    public void getCorsFile(String urlPath, HttpServletResponse response) {
-        logger.info("下载跨域pdf文件url：{}", urlPath);
-        try {
-            URL url = WebUtils.normalizedURL(urlPath);
-            if (!allowPreview(urlPath)) {
-                response.setHeader("content-type", "text/html;charset=utf-8");
-                response.getOutputStream().println("forbidden");
-                response.setStatus(401);
-                return;
-            }
-            byte[] bytes = NetUtil.downloadBytes(url.toString());
-            IOUtils.write(bytes, response.getOutputStream());
-        } catch (IOException | GalimatiasParseException e) {
-            logger.error("下载跨域pdf文件异常，url：{}", urlPath, e);
-        }
-    }
+		String currentUrl = req.getParameter("currentUrl");
+		if (StringUtils.hasText(currentUrl)) {
+			String decodedCurrentUrl = new String(Base64.decodeBase64(currentUrl));
+			if (!allowPreview(decodedCurrentUrl)) {
+				return otherFilePreview.notSupportedFile(model, "该文件不允许预览：" + decodedCurrentUrl);
+			}
+			model.addAttribute("currentUrl", decodedCurrentUrl);
+		} else {
+			if (!allowPreview(imgUrls.get(0))) {
+				return otherFilePreview.notSupportedFile(model, "该文件不允许预览：" + imgUrls.get(0));
+			}
+			model.addAttribute("currentUrl", imgUrls.get(0));
+		}
+		return PICTURE_FILE_PREVIEW_PAGE;
+	}
 
-    /**
-     * 通过api接口入队
-     *
-     * @param url 请编码后在入队
-     */
-    @RequestMapping("/addTask")
-    @ResponseBody
-    public String addQueueTask(String url) {
-        logger.info("添加转码队列url：{}", url);
-        cacheService.addQueueTask(url);
-        return "success";
-    }
+	/**
+	 * 根据url获取文件内容 当pdfjs读取存在跨域问题的文件时将通过此接口读取
+	 *
+	 * @param urlPath  url
+	 * @param response response
+	 */
+	@RequestMapping(value = "/getCorsFile", method = RequestMethod.GET)
+	public void getCorsFile(String urlPath, HttpServletResponse response) {
+		logger.info("下载跨域pdf文件url：{}", urlPath);
+		try {
+			URL url = WebUtils.normalizedURL(urlPath);
+			if (!allowPreview(urlPath)) {
+				response.setHeader("content-type", "text/html;charset=utf-8");
+				response.getOutputStream().println("forbidden");
+				response.setStatus(401);
+				return;
+			}
+			byte[] bytes = NetUtil.downloadBytes(url.toString());
+			IOUtils.write(bytes, response.getOutputStream());
+		} catch (IOException | GalimatiasParseException e) {
+			logger.error("下载跨域pdf文件异常，url：{}", urlPath, e);
+		}
+	}
 
-    private boolean allowPreview(String urlPath) {
-        try {
-            URL url = WebUtils.normalizedURL(urlPath);
-            if ("file".equals(url.getProtocol().toLowerCase(Locale.ROOT))) {
-                String filePath = URLDecoder.decode(url.getPath(), StandardCharsets.UTF_8.name());
-                if (PlatformUtils.isWindows()) {
-                    filePath = filePath.replaceAll("/", "\\\\");
-                }
-                filePath = filePath.substring(1);
-                if (!filePath.startsWith(ConfigConstants.getFileDir()) && !filePath.startsWith(ConfigConstants.getLocalPreviewDir())) {
-                    return false;
-                }
-            }
-            return true;
-        } catch (IOException | GalimatiasParseException e) {
-            logger.error("解析URL异常，url：{}", urlPath, e);
-            return false;
-        }
-    }
+	/**
+	 * 通过api接口入队
+	 *
+	 * @param url 请编码后在入队
+	 */
+	@RequestMapping("/addTask")
+	@ResponseBody
+	public String addQueueTask(String url) {
+		logger.info("添加转码队列url：{}", url);
+		cacheService.addQueueTask(url);
+		return "success";
+	}
+
+	private boolean allowPreview(String urlPath) {
+		try {
+			URL url = WebUtils.normalizedURL(urlPath);
+			if ("file".equals(url.getProtocol().toLowerCase(Locale.ROOT))) {
+				String filePath = URLDecoder.decode(url.getPath(), StandardCharsets.UTF_8.name());
+				if (PlatformUtils.isWindows()) {
+					filePath = filePath.replaceAll("/", "\\\\");
+				}
+				filePath = filePath.substring(1);
+				if (!filePath.startsWith(ConfigConstants.getFileDir())
+						&& !filePath.startsWith(ConfigConstants.getLocalPreviewDir())) {
+					return false;
+				}
+			}
+			return true;
+		} catch (IOException | GalimatiasParseException e) {
+			logger.error("解析URL异常，url：{}", urlPath, e);
+			return false;
+		}
+	}
 
 }
