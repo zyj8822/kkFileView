@@ -39,7 +39,9 @@ public class DownloadUtils {
 			URL url = WebUtils.normalizedURL(urlStr);
 			logger.info("下载文件：{} realPath:{}", url, realPath);
 			if (!fileAttribute.getSkipDownLoad()) {
+				logger.info("执行下载");
 				if (isHttpUrl(url)) {
+					logger.info("HTTP执行下载");
 					File realFile = new File(realPath);
 					FileUtils.copyURLToFile(url, realFile);
 				} else if (isFtpUrl(url)) {
