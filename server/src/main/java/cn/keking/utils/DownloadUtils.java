@@ -44,6 +44,9 @@ public class DownloadUtils {
 					logger.info("HTTP执行下载");
 					File realFile = new File(realPath);
 					FileUtils.copyURLToFile(url, realFile);
+					logger.info("HTTP执行下载完成 文件是否存在:{} 文件大小:{}", realFile.exists(),
+							realFile.exists() ? new File(realPath).length() : "0");
+
 				} else if (isFtpUrl(url)) {
 					String ftpUsername = WebUtils.getUrlParameterReg(fileAttribute.getUrl(), URL_PARAM_FTP_USERNAME);
 					String ftpPassword = WebUtils.getUrlParameterReg(fileAttribute.getUrl(), URL_PARAM_FTP_PASSWORD);
