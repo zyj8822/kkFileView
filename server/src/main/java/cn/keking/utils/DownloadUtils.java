@@ -37,7 +37,7 @@ public class DownloadUtils {
 		String realPath = DownloadUtils.getRelFilePath(fileName, fileAttribute);
 		try {
 			URL url = WebUtils.normalizedURL(urlStr);
-			logger.info("下载文件：{}", url);
+			logger.info("下载文件：{} realPath:{}", url, realPath);
 			if (!fileAttribute.getSkipDownLoad()) {
 				if (isHttpUrl(url)) {
 					File realFile = new File(realPath);
